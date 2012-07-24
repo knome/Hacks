@@ -21,9 +21,12 @@ class CaseRange:
 
 
 class Case:
-    def __init__( self, value ):
+    def __init__( self, value, fallthrough ):
         self._value   = value
         self._success = False
+        self._fall    = False
+        
+        self._falldef = fallthrough
         return
     
     def _succeed( self ):
@@ -36,9 +39,17 @@ class Case:
     def range( self, start, stop ):
         return CaseRange( start, stop )
     
+    def fallthrough( self ):
+        self._fall = True
+    
     def __call__( self, *args ):
         if self._success:
-            return True
+            if self._falldef or self._fall:
+                self._fall = False
+                return True
+            else:
+                self.escape()
+        
         if not args:
             return self._succeed()
         for arg in args:
@@ -53,8 +64,8 @@ class Case:
 
 
 @contextmanager
-def switch( value ):
-    case = Case( value )
+def switch( value, fallthrough = False ):
+    case = Case( value, fallthrough = fallthrough )
     try:
         yield case
     except CaseEscape, e:
